@@ -17,18 +17,25 @@ jobs:
       - name: Calculate Diff Size
         id: diff_size
         run: |
+        
           # Fetch main to ensure we have a reference point
           git fetch origin main --depth=1
-
-          # Get the stats: insertions + deletions
-          # We use 'origin/main...HEAD' to see exactly what the PR is adding
-          RAW_STATS=$(git diff --shortstat origin/main...HEAD)
+    
+          # Try to get diff using merge-base first; fall back to comparing against main
+          if git merge-base --is-ancestor origin/main HEAD 2>/dev/null; then
+            # Standard case: branches share history
+            RAW_STATS=$(git diff --shortstat origin/main...HEAD)
+          else
+            # Forked/new branch case: compare directly against main
+            RAW_STATS=$(git diff --shortstat origin/main HEAD)
+          fi
+    
           echo "Stats: $RAW_STATS"
-
+    
           # Extract numbers using sed/awk to handle cases where there are 0 deletions or 0 insertions
           ADDITIONS=$(echo $RAW_STATS | sed -n 's/.* \([0-9]*\) insertion.*/\1/p' || echo 0)
           DELETIONS=$(echo $RAW_STATS | sed -n 's/.* \([0-9]*\) deletion.*/\1/p' || echo 0)
-
+    
           TOTAL=$(( ${ADDITIONS:-0} + ${DELETIONS:-0} ))
           echo "total_change=$TOTAL" >> $GITHUB_ENV
           echo "Final count: $TOTAL lines"

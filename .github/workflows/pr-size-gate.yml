@@ -12,6 +12,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Essential to see the difference between branches
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Calculate Diff Size
         id: diff_size
